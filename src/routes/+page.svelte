@@ -233,89 +233,96 @@
 			<div class="space-y-4">
 				<h2 class="text-2xl font-bold mb-6">Evaluation Suites</h2>
 
-				{#each filteredFolderTree as suite}
-					{#if suite.type === 'folder'}
-						<div class="collapse collapse-arrow bg-base-100 border border-base-300 shadow-sm">
-							<input type="checkbox" />
-							<div class="collapse-title text-xl font-medium flex items-center justify-between">
+				{#snippet configCard(config: import('$lib/shared/types').TableRow)}
+					{@const judgmentData = getJudgmentData(config.path)}
+					{@const evaluationMetadata = getEvaluationMetadata(config.path)}
+					<div class="collapse collapse-arrow bg-base-200 border border-base-300">
+						<input type="checkbox" />
+						<div class="collapse-title font-medium">
+							<div class="flex items-center justify-between">
 								<div class="flex items-center gap-3">
-									<span>{suite.name}</span>
+									<span class="font-bold">{config.name}</span>
+									<span class="badge badge-sm badge-ghost">{config.transcriptCount || 0} transcripts</span>
+								</div>
+								<div class="flex items-center gap-2">
+									{#if judgmentData?.summaryStatistics?.average_behavior_presence_score !== undefined}
+										{@const score = judgmentData.summaryStatistics.average_behavior_presence_score}
+										{@const scoreStyle = getScoreColorContinuous(score)}
+										<span class="badge" style={scoreStyle}>
+											Avg Behavior Presence: {score.toFixed(1)}/10
+										</span>
+									{/if}
+									{#if judgmentData?.summaryStatistics?.elicitation_rate !== undefined}
+										{@const rate = judgmentData.summaryStatistics.elicitation_rate}
+										{@const percentage = (rate * 100).toFixed(1)}
+										{@const rateScore = rate * 10}
+										{@const rateStyle = getScoreColorContinuous(rateScore)}
+										<span class="badge" style={rateStyle}>
+											Elicitation Rate: {percentage}%
+										</span>
+									{/if}
 								</div>
 							</div>
-							<div class="collapse-content">
-								<div class="pt-4 space-y-3">
-									{#each (suite.subRows || []) as config}
-										{#if config.type === 'folder'}
-											{@const auditorModelShort = config.auditorModel?.split('/').pop() || 'Unknown'}
-											{@const targetModelShort = config.targetModel?.split('/').pop() || 'Unknown'}
-											{@const judgmentData = getJudgmentData(config.path)}
-											{@const evaluationMetadata = getEvaluationMetadata(config.path)}
-											<div class="collapse collapse-arrow bg-base-200 border border-base-300">
-												<input type="checkbox" />
-												<div class="collapse-title font-medium">
-													<div class="flex items-center justify-between">
-														<div class="flex items-center gap-3">
-															<span class="font-bold">{config.name}</span>
-															<span class="badge badge-sm badge-ghost">{config.transcriptCount || 0} transcripts</span>
-														</div>
-														<div class="flex items-center gap-2">
-															{#if judgmentData?.summaryStatistics?.average_behavior_presence_score !== undefined}
-																{@const score = judgmentData.summaryStatistics.average_behavior_presence_score}
-																{@const scoreStyle = getScoreColorContinuous(score)}
-																<span class="badge" style={scoreStyle}>
-																	Avg Behavior Presence: {score.toFixed(1)}/10
-																</span>
-															{/if}
-															{#if judgmentData?.summaryStatistics?.elicitation_rate !== undefined}
-																{@const rate = judgmentData.summaryStatistics.elicitation_rate}
-																{@const percentage = (rate * 100).toFixed(1)}
-																{@const rateScore = rate * 10}
-																{@const rateStyle = getScoreColorContinuous(rateScore)}
-																<span class="badge" style={rateStyle}>
-																	Elicitation Rate: {percentage}%
-																</span>
-															{/if}
-														</div>
-													</div>
-													<!-- Display evaluation metadata tags on second row -->
-													{#if evaluationMetadata?.metadata}
-														{@const metadata = evaluationMetadata.metadata}
-														<div class="flex items-center gap-1.5 flex-wrap mt-2">
-															{#each Object.entries(metadata) as [key, value]}
-																<span class="px-1.5 py-0.5 text-[10px] bg-base-200 border border-base-300 font-mono">{key}: {value}</span>
-															{/each}
-														</div>
-													{/if}
-												</div>
-												<div class="collapse-content">
-													<div class="pt-2 space-y-4">
-														<!-- Metajudge Report -->
-														{#if judgmentData}
-															<MetajudgeReport
-																summaryStatistics={judgmentData.summaryStatistics}
-																metajudgmentResponse={judgmentData.metajudgmentResponse}
-																metajudgmentJustification={judgmentData.metajudgmentJustification}
-															/>
-														{/if}
-
-														<!-- Transcript Table -->
-														<TranscriptTable
-															transcripts={[]}
-															folderTree={config.subRows || []}
-															{scoreTypes}
-															{scoreDescriptions}
-															viewMode="tree"
-															currentPath={currentPath}
-															onTranscriptClick={handleTranscriptSelect}
-														/>
-													</div>
-												</div>
-											</div>
-										{/if}
+							<!-- Display evaluation metadata tags on second row -->
+							{#if evaluationMetadata?.metadata}
+								{@const metadata = evaluationMetadata.metadata}
+								<div class="flex items-center gap-1.5 flex-wrap mt-2">
+									{#each Object.entries(metadata) as [key, value]}
+										<span class="px-1.5 py-0.5 text-[10px] bg-base-200 border border-base-300 font-mono">{key}: {value}</span>
 									{/each}
 								</div>
+							{/if}
+						</div>
+						<div class="collapse-content">
+							<div class="pt-2 space-y-4">
+								<!-- Metajudge Report -->
+								{#if judgmentData}
+									<MetajudgeReport
+										summaryStatistics={judgmentData.summaryStatistics}
+										metajudgmentResponse={judgmentData.metajudgmentResponse}
+										metajudgmentJustification={judgmentData.metajudgmentJustification}
+									/>
+								{/if}
+
+								<!-- Transcript Table -->
+								<TranscriptTable
+									transcripts={[]}
+									folderTree={config.subRows || []}
+									{scoreTypes}
+									{scoreDescriptions}
+									viewMode="tree"
+									currentPath={currentPath}
+									onTranscriptClick={handleTranscriptSelect}
+								/>
 							</div>
 						</div>
+					</div>
+				{/snippet}
+
+				{#each filteredFolderTree as suite}
+					{#if suite.type === 'folder'}
+						{@const childConfigs = (suite.subRows || []).filter((row) => row.type === 'folder')}
+						{#if childConfigs.length > 0}
+							<!-- Nested layout: this folder groups one or more config sub-folders -->
+							<div class="collapse collapse-arrow bg-base-100 border border-base-300 shadow-sm">
+								<input type="checkbox" />
+								<div class="collapse-title text-xl font-medium flex items-center justify-between">
+									<div class="flex items-center gap-3">
+										<span>{suite.name}</span>
+									</div>
+								</div>
+								<div class="collapse-content">
+									<div class="pt-4 space-y-3">
+										{#each childConfigs as config}
+											{@render configCard(config)}
+										{/each}
+									</div>
+								</div>
+							</div>
+						{:else}
+							<!-- Flat layout: this folder directly contains transcripts (one result set) -->
+							{@render configCard(suite)}
+						{/if}
 					{/if}
 				{/each}
 			</div>

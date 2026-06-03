@@ -273,6 +273,48 @@ export interface JudgeOutput {
   highlights?: Highlight[];
 }
 
+// A single rule under test, as embedded by the scenario->bloom converter.
+export interface RuleUnderTest {
+  id: string;
+  text: string;
+}
+
+// A single pressure modifier applied to a variation, optionally with the
+// description embedded by the converter for display.
+export interface ModifierDetail {
+  key: string;
+  description?: string;
+  rules?: string[];
+}
+
+// Provenance the scenario->bloom converter joins onto each transcript so it is
+// self-describing: which base scenario, which rules, which pressure modifiers.
+export interface VariationMeta {
+  base?: string;
+  base_label?: string;
+  modifiers?: string[];
+  modifier_details?: ModifierDetail[];
+  aftermath?: boolean;
+  tag?: string;
+  domain?: string;
+  control?: boolean;
+  tools?: string[];
+  tools_source?: string;
+  subset_rule_ids?: string[];
+  rules_under_test?: RuleUnderTest[];
+  legal_question?: string;
+  facts_of_case?: string;
+  ambiguous_topics_and_tradeoffs?: string[];
+  source?: {
+    run_label?: string;
+    episode_num?: number;
+    batch_idx?: number;
+    scenario_id?: string;
+    entropy_reward?: number | null;
+    effective_reward?: number | null;
+  };
+}
+
 export interface TranscriptMetadata {
   transcript_id: string;
   auditor_model?: string;
@@ -284,6 +326,7 @@ export interface TranscriptMetadata {
   short_name?: string;
   tags?: string[];
   judge_output?: JudgeOutput;
+  variation_meta?: VariationMeta;
 }
 
 export interface Transcript {

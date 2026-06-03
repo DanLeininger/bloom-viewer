@@ -31,10 +31,38 @@
   });
 
   // View settings state
-  let selectedView = $state('combined');
+  let selectedView = $state('target');
   let showApiFailures = $state(false);
   let showSharedHistory = $state(true);
   let showSystemPrompt = $state(false);
+  let showScenario = $state(true);
+  let showJudge = $state(true);
+
+  // Scenario provenance (original scenario, rules under test, pressure modifiers)
+  // joined onto the transcript by the scenario->bloom converter. Read from the
+  // typed metadata (populated by the loader when the transcript loads).
+  let variationMeta = $derived(loader.metadata?.variation_meta);
+  let hasScenarioInfo = $derived.by(() => {
+    const vm = variationMeta;
+    if (!vm) return false;
+    return Boolean(
+      vm.facts_of_case ||
+      vm.legal_question ||
+      (vm.rules_under_test && vm.rules_under_test.length) ||
+      (vm.modifiers && vm.modifiers.length) ||
+      (vm.ambiguous_topics_and_tradeoffs && vm.ambiguous_topics_and_tradeoffs.length)
+    );
+  });
+  // Map "material-omission" -> "Material Omission" for readable modifier labels.
+  function modifierLabel(key: string): string {
+    return key
+      .split('-')
+      .map((w) => (w ? w.charAt(0).toUpperCase() + w.slice(1) : w))
+      .join(' ');
+  }
+  function modifierDescription(key: string): string | undefined {
+    return variationMeta?.modifier_details?.find((m) => m.key === key)?.description;
+  }
 
   // Message state management
   let openMessages: Record<string, boolean> = $state({});
@@ -378,27 +406,41 @@
       </div>
 
 
-      <!-- Judge Summary -->
-      <div class="mb-4">
-        <h3 class="text-lg font-semibold mb-2">Judge Summary</h3>
-        <p class="text-sm leading-relaxed">{loader.transcript?.judgeSummary}</p>
-      </div>
+      <!-- Scenario context (original scenario, rules under test, modifiers) -->
+      {#if hasScenarioInfo}
+        {@render scenarioContext()}
+      {/if}
 
-      <!-- Judge Justification -->
-      <div class="mb-4">
-        <h3 class="text-lg font-semibold mb-2">Judge Justification</h3>
-        {@render justificationContent()}
-        {#if quoteToMessageMap.size > 0}
-          <div class="flex items-start gap-2 mt-3 text-xs text-base-content/70">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-4 h-4 mt-0.5">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-            </svg>
-            <span>
-              Numbered references [1], [2], etc. are clickable and will jump to the corresponding message in the transcript.
-              Note: References only work if the message is visible in the current view (Evaluator/Target/Combined).
-            </span>
+      <!-- Judge Summary & Justification (Collapsible) -->
+      <div class="collapse collapse-arrow bg-base-200 mb-4">
+        <input type="checkbox" bind:checked={showJudge} />
+        <div class="collapse-title text-lg font-semibold">
+          Judge Summary &amp; Justification
+        </div>
+        <div class="collapse-content space-y-4">
+          <!-- Judge Summary -->
+          <div>
+            <h4 class="font-semibold text-sm mb-1 text-base-content/80 uppercase tracking-wide">Judge Summary</h4>
+            <p class="text-sm leading-relaxed">{loader.transcript?.judgeSummary}</p>
           </div>
-        {/if}
+
+          <!-- Judge Justification -->
+          <div>
+            <h4 class="font-semibold text-sm mb-1 text-base-content/80 uppercase tracking-wide">Judge Justification</h4>
+            {@render justificationContent()}
+            {#if quoteToMessageMap.size > 0}
+              <div class="flex items-start gap-2 mt-3 text-xs text-base-content/70">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-4 h-4 mt-0.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>
+                  Numbered references [1], [2], etc. are clickable and will jump to the corresponding message in the transcript.
+                  Note: References only work if the message is visible in the current view (Evaluator/Target/Combined).
+                </span>
+              </div>
+            {/if}
+          </div>
+        </div>
       </div>
 
       <!-- System Prompt (Collapsible) -->
@@ -415,6 +457,100 @@
           </div>
         </div>
       {/if}
+    </div>
+  </div>
+{/snippet}
+
+<!-- Scenario Context Snippet -->
+{#snippet scenarioContext()}
+  {@const vm = variationMeta}
+  <div class="collapse collapse-arrow bg-base-200 mb-4">
+    <input type="checkbox" bind:checked={showScenario} />
+    <div class="collapse-title text-lg font-semibold">
+      Scenario, Rules &amp; Modifiers
+    </div>
+    <div class="collapse-content space-y-5">
+      <!-- Variation summary badges -->
+      <div class="flex flex-wrap gap-2">
+        {#if vm?.base_label}
+          <span class="badge badge-neutral">base: {vm.base_label}{vm.base ? ` (${vm.base})` : ''}</span>
+        {/if}
+        {#if vm?.domain}
+          <span class="badge badge-ghost">domain: {vm.domain}</span>
+        {/if}
+        {#if vm?.control}
+          <span class="badge badge-info">control</span>
+        {/if}
+        {#if vm?.aftermath}
+          <span class="badge badge-warning">aftermath probe</span>
+        {/if}
+        {#if vm?.tag}
+          <span class="badge badge-outline font-mono">{vm.tag}</span>
+        {/if}
+      </div>
+
+      <!-- Original scenario -->
+      {#if vm?.facts_of_case || vm?.legal_question}
+        <div>
+          <h4 class="font-semibold text-sm mb-1 text-base-content/80 uppercase tracking-wide">Original Scenario</h4>
+          {#if vm?.facts_of_case}
+            <p class="text-sm leading-relaxed whitespace-pre-wrap">{vm.facts_of_case}</p>
+          {/if}
+          {#if vm?.legal_question}
+            <p class="text-sm leading-relaxed mt-2">
+              <span class="font-semibold">Question probed:</span> {vm.legal_question}
+            </p>
+          {/if}
+        </div>
+      {/if}
+
+      <!-- Latent tradeoffs -->
+      {#if vm?.ambiguous_topics_and_tradeoffs && vm.ambiguous_topics_and_tradeoffs.length}
+        <div>
+          <h4 class="font-semibold text-sm mb-1 text-base-content/80 uppercase tracking-wide">Tensions &amp; Tradeoffs</h4>
+          <ul class="list-disc list-inside space-y-1 text-sm leading-relaxed">
+            {#each vm.ambiguous_topics_and_tradeoffs as tradeoff}
+              <li>{tradeoff}</li>
+            {/each}
+          </ul>
+        </div>
+      {/if}
+
+      <!-- Relevant rules -->
+      {#if vm?.rules_under_test && vm.rules_under_test.length}
+        <div>
+          <h4 class="font-semibold text-sm mb-2 text-base-content/80 uppercase tracking-wide">
+            Relevant Rules{vm.subset_rule_ids && vm.subset_rule_ids.length ? ` (${vm.subset_rule_ids.join(', ')})` : ''}
+          </h4>
+          <div class="space-y-2">
+            {#each vm.rules_under_test as rule}
+              <div class="bg-base-100 rounded-lg p-3 border border-base-300">
+                <span class="font-semibold text-sm font-mono">{rule.id}</span>
+                <p class="text-sm leading-relaxed mt-1">{rule.text}</p>
+              </div>
+            {/each}
+          </div>
+        </div>
+      {/if}
+
+      <!-- Pressure modifiers -->
+      <div>
+        <h4 class="font-semibold text-sm mb-2 text-base-content/80 uppercase tracking-wide">Pressure Modifiers</h4>
+        {#if vm?.modifiers && vm.modifiers.length}
+          <div class="space-y-2">
+            {#each vm.modifiers as mod}
+              <div class="bg-base-100 rounded-lg p-3 border border-base-300">
+                <span class="badge badge-secondary badge-sm">{modifierLabel(mod)}</span>
+                {#if modifierDescription(mod)}
+                  <p class="text-sm leading-relaxed mt-2">{modifierDescription(mod)}</p>
+                {/if}
+              </div>
+            {/each}
+          </div>
+        {:else}
+          <p class="text-sm text-base-content/60 italic">None (baseline variation)</p>
+        {/if}
+      </div>
     </div>
   </div>
 {/snippet}

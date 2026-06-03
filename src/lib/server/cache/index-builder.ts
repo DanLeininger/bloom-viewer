@@ -197,6 +197,48 @@ export async function loadConfigIndex(transcriptDir: string, configPath: string)
 }
 
 /**
+ * Determine whether a cached _index.json is stale relative to its source files.
+ *
+ * The index aggregates data from judgment.json (summary statistics + metajudge),
+ * evaluation.json (metadata tags) and the transcript_*.json files. Bloom often
+ * writes _index.json mid-run (e.g. after rollout, before the metajudgment step
+ * finishes), so a cached index can be missing summary_statistics/metajudge that
+ * the now-complete judgment.json contains. Treat the index as stale whenever any
+ * of those sources has a newer mtime than the index itself, forcing a rebuild.
+ */
+async function isIndexStale(transcriptDir: string, configPath: string): Promise<boolean> {
+  const configDirPath = path.join(transcriptDir, configPath);
+  const indexFilePath = path.join(configDirPath, INDEX_FILENAME);
+
+  let indexMtime: number;
+  try {
+    indexMtime = (await fs.stat(indexFilePath)).mtimeMs;
+  } catch {
+    return true; // No index on disk -> needs building.
+  }
+
+  try {
+    const entries = await fs.readdir(configDirPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isFile()) continue;
+      const isSource =
+        entry.name === 'judgment.json' ||
+        entry.name === 'evaluation.json' ||
+        (entry.name.startsWith('transcript_') && entry.name.endsWith('.json'));
+      if (!isSource) continue;
+
+      const sourceMtime = (await fs.stat(path.join(configDirPath, entry.name))).mtimeMs;
+      if (sourceMtime > indexMtime) return true;
+    }
+  } catch {
+    // If we can't scan the directory, don't force a rebuild loop.
+    return false;
+  }
+
+  return false;
+}
+
+/**
  * Scan a directory for all config folders (folders containing judgment.json or transcript files)
  */
 async function findConfigFolders(transcriptDir: string, basePath: string = ''): Promise<string[]> {
@@ -276,18 +318,22 @@ export async function loadAggregatedIndexes(transcriptDir: string): Promise<Aggr
   for (const configPath of configPaths) {
     try {
       const index = await loadConfigIndex(transcriptDir, configPath);
+      const stale = await isIndexStale(transcriptDir, configPath);
 
-      // Check if index exists and path matches (folder might have been moved)
-      if (index && index.config.path === configPath) {
+      // Reuse the cached index only if it exists, its path matches (folder might
+      // have been moved), and it isn't stale relative to its source files.
+      if (index && index.config.path === configPath && !stale) {
         configIndexes.push(index);
       } else {
-        if (index) {
+        if (index && stale) {
+          console.warn(`⚠️ [INDEX-BUILDER] Index for ${configPath} is stale (source files newer), rebuilding`);
+        } else if (index) {
           console.warn(`⚠️ [INDEX-BUILDER] Index path mismatch for ${configPath} (stored: ${index.config.path}), rebuilding`);
         } else {
           console.warn(`⚠️ [INDEX-BUILDER] No index found for ${configPath}, building fresh`);
         }
 
-        // Rebuild index if it doesn't exist or path doesn't match
+        // Rebuild index if it doesn't exist, path doesn't match, or it's stale.
         const newIndex = await buildConfigIndex(transcriptDir, configPath);
         if (newIndex) {
           await storeConfigIndex(transcriptDir, configPath, newIndex);
