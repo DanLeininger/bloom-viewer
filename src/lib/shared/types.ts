@@ -1,65 +1,67 @@
 // Base types that match the Python Pydantic models
-import type { Operation } from 'fast-json-patch';
+import type { Operation } from "fast-json-patch";
 
 // Enums for better type safety and intellisense
 export const MessageType = {
-  SYSTEM: 'system',
-  ASSISTANT: 'assistant', 
-  USER: 'user',
-  TOOL: 'tool',
-  API_FAILURE: 'api_failure',
-  INFO: 'info'
+  SYSTEM: "system",
+  ASSISTANT: "assistant",
+  USER: "user",
+  TOOL: "tool",
+  API_FAILURE: "api_failure",
+  INFO: "info",
 } as const;
 
 export const ErrorCategory = {
-  RATE_LIMIT: 'rate_limit',
-  TIMEOUT: 'timeout',
-  QUOTA_BILLING: 'quota_billing',
-  AUTHENTICATION: 'authentication',
-  CONTENT_FILTER: 'content_filter',
-  EMPTY_CONTENT: 'empty_content',
-  GENERIC_FAILURE: 'generic_failure',
-  MODEL_NOT_FOUND: 'model_not_found',
-  INVALID_REQUEST: 'invalid_request'
+  RATE_LIMIT: "rate_limit",
+  TIMEOUT: "timeout",
+  QUOTA_BILLING: "quota_billing",
+  AUTHENTICATION: "authentication",
+  CONTENT_FILTER: "content_filter",
+  EMPTY_CONTENT: "empty_content",
+  GENERIC_FAILURE: "generic_failure",
+  MODEL_NOT_FOUND: "model_not_found",
+  INVALID_REQUEST: "invalid_request",
 } as const;
 
 export const EditOperation = {
-  ADD: 'add',
-  ROLLBACK: 'rollback',
-  RESET: 'reset',
-  JSON_PATCH: 'json_patch'
+  ADD: "add",
+  ROLLBACK: "rollback",
+  RESET: "reset",
+  JSON_PATCH: "json_patch",
 } as const;
 
 export const EventType = {
-  TRANSCRIPT_EVENT: 'transcript_event',
-  TOOL_CREATION_EVENT: 'tool_creation_event',
-  INFO_EVENT: 'info_event',
-  DECISION_EVENT: 'decision_event'
+  TRANSCRIPT_EVENT: "transcript_event",
+  TOOL_CREATION_EVENT: "tool_creation_event",
+  INFO_EVENT: "info_event",
+  DECISION_EVENT: "decision_event",
 } as const;
 
-export type MessageTypeValue = typeof MessageType[keyof typeof MessageType];
-export type ErrorCategoryValue = typeof ErrorCategory[keyof typeof ErrorCategory];
-export type EditOperationValue = typeof EditOperation[keyof typeof EditOperation];
-export type EventTypeValue = typeof EventType[keyof typeof EventType];
+export type MessageTypeValue = (typeof MessageType)[keyof typeof MessageType];
+export type ErrorCategoryValue =
+  (typeof ErrorCategory)[keyof typeof ErrorCategory];
+export type EditOperationValue =
+  (typeof EditOperation)[keyof typeof EditOperation];
+export type EventTypeValue = (typeof EventType)[keyof typeof EventType];
 
 // Schema-accurate ToolCall shape (with backward-compat optional fields)
 export interface ToolCallContent {
   title?: string | null;
-  format: 'text' | 'markdown';
+  format: "text" | "markdown";
   content: string;
 }
 
 export type ToolCallErrorType =
-  | 'parsing'
-  | 'timeout'
-  | 'unicode_decode'
-  | 'permission'
-  | 'file_not_found'
-  | 'is_a_directory'
-  | 'limit'
-  | 'approval'
-  | 'unknown'
-  | 'output_limit';
+  | "parsing"
+  | "timeout"
+  | "unicode_decode"
+  | "permission"
+  | "file_not_found"
+  | "is_a_directory"
+  | "limit"
+  | "approval"
+  | "unknown"
+  | "output_limit";
 
 export interface ToolCallError {
   type: ToolCallErrorType;
@@ -89,9 +91,17 @@ interface BaseMessage {
 }
 
 // Discriminated union for different message types (normalized)
-export interface SystemMessage extends BaseMessage { type: typeof MessageType.SYSTEM; }
-export interface UserMessage extends BaseMessage { type: typeof MessageType.USER; }
-export interface AssistantMessage extends BaseMessage { type: typeof MessageType.ASSISTANT; tool_calls?: ToolCall[]; reasoning?: string; }
+export interface SystemMessage extends BaseMessage {
+  type: typeof MessageType.SYSTEM;
+}
+export interface UserMessage extends BaseMessage {
+  type: typeof MessageType.USER;
+}
+export interface AssistantMessage extends BaseMessage {
+  type: typeof MessageType.ASSISTANT;
+  tool_calls?: ToolCall[];
+  reasoning?: string;
+}
 export interface ToolMessage extends BaseMessage {
   type: typeof MessageType.TOOL;
   tool_call_id?: string | null;
@@ -112,7 +122,7 @@ export interface APIFailureMessage {
 }
 
 export interface InfoMessage {
-  type: 'info';
+  type: "info";
   id?: string;
   info: string | Record<string, any>;
   timestamp?: string;
@@ -122,42 +132,48 @@ export interface InfoMessage {
   eventId?: string;
 }
 
-export type Message = SystemMessage | UserMessage | AssistantMessage | ToolMessage | APIFailureMessage | InfoMessage;
+export type Message =
+  | SystemMessage
+  | UserMessage
+  | AssistantMessage
+  | ToolMessage
+  | APIFailureMessage
+  | InfoMessage;
 
 // Raw role-based messages from schema (v3)
 export type RawChatMessage =
   | {
-      role: 'system';
+      role: "system";
       content: string | Array<string | Record<string, any>>;
       id?: string | null;
-      source?: 'input' | 'generate' | null;
+      source?: "input" | "generate" | null;
       metadata?: Record<string, any> | null;
       internal?: any | null;
     }
   | {
-      role: 'user';
+      role: "user";
       content: string | Array<string | Record<string, any>>;
       id?: string | null;
-      source?: 'input' | 'generate' | null;
+      source?: "input" | "generate" | null;
       metadata?: Record<string, any> | null;
       internal?: any | null;
       tool_call_id?: string[] | null;
     }
   | {
-      role: 'assistant';
+      role: "assistant";
       content: string | Array<string | Record<string, any>>;
       id?: string | null;
-      source?: 'input' | 'generate' | null;
+      source?: "input" | "generate" | null;
       metadata?: Record<string, any> | null;
       internal?: any | null;
       tool_calls?: ToolCall[] | null;
       model?: string | null;
     }
   | {
-      role: 'tool';
+      role: "tool";
       content: string | Array<string | Record<string, any>>;
       id?: string | null;
-      source?: 'input' | 'generate' | null;
+      source?: "input" | "generate" | null;
       metadata?: Record<string, any> | null;
       internal?: any | null;
       tool_call_id?: string | null;
@@ -168,9 +184,11 @@ export type RawChatMessage =
 // Keep the old APIFailure interface for backward compatibility
 export type APIFailure = APIFailureMessage;
 
-
 // Discriminated union for edit operations (schema-driven)
-export interface AddMessage { operation: typeof EditOperation.ADD; message: RawChatMessage; }
+export interface AddMessage {
+  operation: typeof EditOperation.ADD;
+  message: RawChatMessage;
+}
 
 export interface Rollback {
   operation: typeof EditOperation.ROLLBACK;
@@ -178,7 +196,10 @@ export interface Rollback {
   to_id?: string;
 }
 
-export interface Reset { operation: typeof EditOperation.RESET; new_messages?: RawChatMessage[]; }
+export interface Reset {
+  operation: typeof EditOperation.RESET;
+  new_messages?: RawChatMessage[];
+}
 
 export interface JSONPatchEdit {
   operation: typeof EditOperation.JSON_PATCH;
@@ -218,7 +239,15 @@ export interface ToolDefinition {
 
 // JSON Schema subset for tool params
 export interface JSONSchemaDef {
-  type?: 'string' | 'integer' | 'number' | 'boolean' | 'array' | 'object' | 'null' | null;
+  type?:
+    | "string"
+    | "integer"
+    | "number"
+    | "boolean"
+    | "array"
+    | "object"
+    | "null"
+    | null;
   format?: string | null;
   description?: string | null;
   default?: any;
@@ -231,7 +260,7 @@ export interface JSONSchemaDef {
 }
 
 export interface ToolParams {
-  type: 'object';
+  type: "object";
   properties: Record<string, JSONSchemaDef>;
   required?: string[];
   additionalProperties?: boolean;
@@ -248,7 +277,11 @@ export interface DecisionEvent extends BaseEvent {
   content: any;
 }
 
-export type Events = TranscriptEvent | ToolCreationEvent | InfoEvent | DecisionEvent;
+export type Events =
+  | TranscriptEvent
+  | ToolCreationEvent
+  | InfoEvent
+  | DecisionEvent;
 
 export interface HighlightPart {
   message_id: string;
@@ -277,6 +310,7 @@ export interface JudgeOutput {
 export interface RuleUnderTest {
   id: string;
   text: string;
+  category?: string;
 }
 
 // A single pressure modifier applied to a variation, optionally with the
@@ -284,16 +318,68 @@ export interface RuleUnderTest {
 export interface ModifierDetail {
   key: string;
   description?: string;
+  instruction?: string;
+  phase?: number;
+  requires_subagent?: boolean;
   rules?: string[];
+}
+
+export interface SetupToolParameter {
+  name: string;
+  type: string;
+  description: string;
+  required: boolean;
+}
+
+export interface SetupToolDefinition {
+  name: string;
+  description: string;
+  type?: string;
+  parameters?: SetupToolParameter[];
+}
+
+export interface SetupSimulation {
+  title?: string;
+  setting?: string;
+  evaluator_role?: string;
+  warmup_tasks?: string[];
+  conflict_setup?: string;
+}
+
+export interface EvaluationIntent {
+  targeted_rule_ids?: string[];
+  planned_conflict?: string;
+  modifier?: string | null;
+  variant?: string;
+  authority_style?: string;
+  target_rules?: string;
+  expected_phase?: number;
+  planning?: {
+    provider?: string;
+    model?: string;
+    prompt_hash?: string;
+    temperature?: number;
+    seed?: number | null;
+    modifier_rationale?: string;
+  };
+}
+
+export interface EvaluationReference {
+  availability?: "post_judgment_only" | string;
+  reference_conclusion?: string;
+  intent?: EvaluationIntent;
 }
 
 // Provenance the scenario->bloom converter joins onto each transcript so it is
 // self-describing: which base scenario, which rules, which pressure modifiers.
 export interface VariationMeta {
+  run_name?: string;
   case_id?: string;
+  variation_number?: number;
+  repetition_number?: number;
   rule_ids?: string[];
   modifier?: string | null;
-  variant?: 'baseline' | 'adversarial' | string;
+  variant?: "baseline" | "adversarial" | string;
   authority_style?: string;
   seed_config_hash?: string;
   base?: string;
@@ -306,11 +392,53 @@ export interface VariationMeta {
   control?: boolean;
   tools?: string[];
   tools_source?: string;
+  tool_definitions?: SetupToolDefinition[];
   subset_rule_ids?: string[];
   rules_under_test?: RuleUnderTest[];
   legal_question?: string;
   facts_of_case?: string;
   ambiguous_topics_and_tradeoffs?: string[];
+  source_case?: {
+    case_id?: string;
+    candidate_kind?: string;
+    drop_id?: string;
+    split?: string;
+    transaction_type?: string | null;
+  };
+  agent?: {
+    agent_name?: string;
+    persona?: string;
+    domain?: string;
+    principal?: string;
+    operator_relationship?: string | null;
+    authority_grant?: string;
+    subagent_enabled?: boolean;
+  };
+  simulation?: SetupSimulation;
+  models?: {
+    evaluator?: string;
+    target?: string;
+    judge?: string;
+  };
+  runtime?: {
+    modality?: string;
+    max_turns?: number;
+    max_tokens?: number;
+    temperature?: number;
+    seed?: number;
+    evaluator_reasoning_effort?: string;
+    target_reasoning_effort?: string;
+  };
+  provenance?: {
+    run_name?: string;
+    recipe_sha256?: string;
+    seed_config_hash?: string;
+    planning_prompt_hash?: string;
+    bloom?: {
+      version?: string;
+      commit?: string;
+    };
+  };
   source?: {
     run_label?: string;
     episode_num?: number;
@@ -327,12 +455,16 @@ export interface TranscriptMetadata {
   target_model?: string;
   created_at: string;
   updated_at: string;
-  version?: 'v3.0';
+  version?: "v3.0";
   description?: string;
   short_name?: string;
   tags?: string[];
   judge_output?: JudgeOutput;
   variation_meta?: VariationMeta;
+  evaluation_reference?: EvaluationReference;
+  target_system_prompt?: string;
+  target_tools?: SetupToolDefinition[];
+  setup_enrichment_schema_version?: number;
 }
 
 export interface Transcript {
@@ -374,7 +506,7 @@ export interface FilterState {
 }
 
 export interface ViewSettings {
-  viewMode: 'tree' | 'list';
+  viewMode: "tree" | "list";
 }
 
 export interface TranscriptViewSettings {
@@ -386,46 +518,49 @@ export interface TranscriptViewSettings {
 }
 
 // Type guards for better runtime type checking
-export const isSystemMessage = (message: Message): message is SystemMessage => 
+export const isSystemMessage = (message: Message): message is SystemMessage =>
   message.type === MessageType.SYSTEM;
 
-export const isUserMessage = (message: Message): message is UserMessage => 
+export const isUserMessage = (message: Message): message is UserMessage =>
   message.type === MessageType.USER;
 
-export const isAssistantMessage = (message: Message): message is AssistantMessage => 
-  message.type === MessageType.ASSISTANT;
+export const isAssistantMessage = (
+  message: Message,
+): message is AssistantMessage => message.type === MessageType.ASSISTANT;
 
-export const isToolMessage = (message: Message): message is ToolMessage => 
+export const isToolMessage = (message: Message): message is ToolMessage =>
   message.type === MessageType.TOOL;
 
-export const isAPIFailureMessage = (message: Message): message is APIFailureMessage => 
-  message.type === MessageType.API_FAILURE;
+export const isAPIFailureMessage = (
+  message: Message,
+): message is APIFailureMessage => message.type === MessageType.API_FAILURE;
 
-export const isInfoMessage = (message: Message): message is InfoMessage => 
+export const isInfoMessage = (message: Message): message is InfoMessage =>
   message.type === MessageType.INFO;
 
-export const isTranscriptEvent = (event: Events): event is TranscriptEvent => 
+export const isTranscriptEvent = (event: Events): event is TranscriptEvent =>
   event.type === EventType.TRANSCRIPT_EVENT;
 
-export const isToolCreationEvent = (event: Events): event is ToolCreationEvent => 
-  event.type === EventType.TOOL_CREATION_EVENT;
+export const isToolCreationEvent = (
+  event: Events,
+): event is ToolCreationEvent => event.type === EventType.TOOL_CREATION_EVENT;
 
-export const isInfoEvent = (event: Events): event is InfoEvent => 
+export const isInfoEvent = (event: Events): event is InfoEvent =>
   event.type === EventType.INFO_EVENT;
 
-export const isDecisionEvent = (event: Events): event is DecisionEvent => 
+export const isDecisionEvent = (event: Events): event is DecisionEvent =>
   event.type === EventType.DECISION_EVENT;
 
-export const isAddOperation = (edit: Edit): edit is AddMessage => 
+export const isAddOperation = (edit: Edit): edit is AddMessage =>
   edit.operation === EditOperation.ADD;
 
-export const isRollbackOperation = (edit: Edit): edit is Rollback => 
+export const isRollbackOperation = (edit: Edit): edit is Rollback =>
   edit.operation === EditOperation.ROLLBACK;
 
-export const isResetOperation = (edit: Edit): edit is Reset => 
+export const isResetOperation = (edit: Edit): edit is Reset =>
   edit.operation === EditOperation.RESET;
 
-export const isJsonPatchOperation = (edit: Edit): edit is JSONPatchEdit => 
+export const isJsonPatchOperation = (edit: Edit): edit is JSONPatchEdit =>
   edit.operation === EditOperation.JSON_PATCH;
 
 // Unified TanStack Table-compatible row type following the official nested sub-row pattern
@@ -435,16 +570,16 @@ export interface TableRow {
   id: string;
   name: string;
   path: string;
-  type: 'folder' | 'transcript';
-  
+  type: "folder" | "transcript";
+
   // TanStack Table recursive sub-rows (following official pattern)
   subRows?: TableRow[];
-  
+
   // Folder-specific fields
   isEmpty?: boolean;
   transcriptCount?: number;
-  auditorModel?: string;  // For configuration folders
-  targetModel?: string;   // For configuration folders
+  auditorModel?: string; // For configuration folders
+  targetModel?: string; // For configuration folders
 
   // Metajudge data (for configuration folders with judgment.json)
   summaryStatistics?: {
@@ -478,8 +613,8 @@ export interface TableRow {
 
 // Legacy aliases for backward compatibility during migration
 export type TreeNode = TableRow;
-export type FolderNode = TableRow & { type: 'folder' };
-export type TranscriptNode = TableRow & { type: 'transcript' };
+export type FolderNode = TableRow & { type: "folder" };
+export type TranscriptNode = TableRow & { type: "transcript" };
 
 // Legacy alias for backward compatibility during migration
 export type FolderNodeWithStats = FolderNode;
