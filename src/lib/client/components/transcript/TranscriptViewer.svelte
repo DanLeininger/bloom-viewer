@@ -46,9 +46,12 @@
     const vm = variationMeta;
     if (!vm) return false;
     return Boolean(
+      vm.case_id ||
       vm.facts_of_case ||
       vm.legal_question ||
+      (vm.rule_ids && vm.rule_ids.length) ||
       (vm.rules_under_test && vm.rules_under_test.length) ||
+      vm.modifier ||
       (vm.modifiers && vm.modifiers.length) ||
       (vm.ambiguous_topics_and_tradeoffs && vm.ambiguous_topics_and_tradeoffs.length)
     );
@@ -62,6 +65,10 @@
   }
   function modifierDescription(key: string): string | undefined {
     return variationMeta?.modifier_details?.find((m) => m.key === key)?.description;
+  }
+  function selectedModifiers(): string[] {
+    if (variationMeta?.modifiers) return variationMeta.modifiers;
+    return variationMeta?.modifier ? [variationMeta.modifier] : [];
   }
 
   // Message state management
@@ -472,8 +479,17 @@
     <div class="collapse-content space-y-5">
       <!-- Variation summary badges -->
       <div class="flex flex-wrap gap-2">
+        {#if vm?.case_id}
+          <span class="badge badge-neutral">source case: {vm.case_id}</span>
+        {/if}
         {#if vm?.base_label}
           <span class="badge badge-neutral">base: {vm.base_label}{vm.base ? ` (${vm.base})` : ''}</span>
+        {/if}
+        {#if vm?.variant}
+          <span class="badge badge-outline">{vm.variant}</span>
+        {/if}
+        {#if vm?.authority_style}
+          <span class="badge badge-ghost">authority: {vm.authority_style}</span>
         {/if}
         {#if vm?.domain}
           <span class="badge badge-ghost">domain: {vm.domain}</span>
@@ -517,28 +533,36 @@
       {/if}
 
       <!-- Relevant rules -->
-      {#if vm?.rules_under_test && vm.rules_under_test.length}
+      {#if (vm?.rules_under_test && vm.rules_under_test.length) || (vm?.rule_ids && vm.rule_ids.length)}
         <div>
           <h4 class="font-semibold text-sm mb-2 text-base-content/80 uppercase tracking-wide">
-            Relevant Rules{vm.subset_rule_ids && vm.subset_rule_ids.length ? ` (${vm.subset_rule_ids.join(', ')})` : ''}
+            Relevant Rules
           </h4>
-          <div class="space-y-2">
-            {#each vm.rules_under_test as rule}
-              <div class="bg-base-100 rounded-lg p-3 border border-base-300">
-                <span class="font-semibold text-sm font-mono">{rule.id}</span>
-                <p class="text-sm leading-relaxed mt-1">{rule.text}</p>
-              </div>
-            {/each}
-          </div>
+          {#if vm.rules_under_test && vm.rules_under_test.length}
+            <div class="space-y-2">
+              {#each vm.rules_under_test as rule}
+                <div class="bg-base-100 rounded-lg p-3 border border-base-300">
+                  <span class="font-semibold text-sm font-mono">{rule.id}</span>
+                  <p class="text-sm leading-relaxed mt-1">{rule.text}</p>
+                </div>
+              {/each}
+            </div>
+          {:else if vm.rule_ids}
+            <div class="flex flex-wrap gap-2">
+              {#each vm.rule_ids as ruleId}
+                <span class="badge badge-outline font-mono">{ruleId}</span>
+              {/each}
+            </div>
+          {/if}
         </div>
       {/if}
 
       <!-- Pressure modifiers -->
       <div>
         <h4 class="font-semibold text-sm mb-2 text-base-content/80 uppercase tracking-wide">Pressure Modifiers</h4>
-        {#if vm?.modifiers && vm.modifiers.length}
+        {#if selectedModifiers().length}
           <div class="space-y-2">
-            {#each vm.modifiers as mod}
+            {#each selectedModifiers() as mod}
               <div class="bg-base-100 rounded-lg p-3 border border-base-300">
                 <span class="badge badge-secondary badge-sm">{modifierLabel(mod)}</span>
                 {#if modifierDescription(mod)}

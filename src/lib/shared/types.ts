@@ -290,6 +290,12 @@ export interface ModifierDetail {
 // Provenance the scenario->bloom converter joins onto each transcript so it is
 // self-describing: which base scenario, which rules, which pressure modifiers.
 export interface VariationMeta {
+  case_id?: string;
+  rule_ids?: string[];
+  modifier?: string | null;
+  variant?: 'baseline' | 'adversarial' | string;
+  authority_style?: string;
+  seed_config_hash?: string;
   base?: string;
   base_label?: string;
   modifiers?: string[];
